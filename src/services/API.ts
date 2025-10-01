@@ -1,20 +1,15 @@
 import axios from 'axios';
-import { ApiResponse, Race } from '../types';
+import { F1APIResponse, F1RaceEvent } from '../types';
 
-const apiClient = axios.create({
-  baseURL: 'https://api.jolpi.ca/ergast/f1',
-});
+const API_BASE_URL = 'https://raw.githubusercontent.com/sportstimes/f1/main/_db/f1/';
 
-export const getRaceSchedule = async (year: string): Promise<Race[]> => {
+export const getScheduleForYear = async (year: number): Promise<F1RaceEvent[]> => {
   try {
-    console.log('Hi')
-    const response = await apiClient.get<ApiResponse>(`/${year}.json`);
-    if (response.data && response.data.MRData.RaceTable.Races) {
-      return response.data.MRData.RaceTable.Races;
-    }
-    return [];
+    const response = await axios.get<F1APIResponse>(`${API_BASE_URL}${year}.json`);
+    return response.data.races;
   } catch (error) {
-    console.error("Error fetching race schedule:", error);
-    throw error;
+    console.error(`Error fetching F1 schedule for ${year}:`, error);
+    // Return an empty array if the schedule for a year doesn't exist yet
+    return [];
   }
 };

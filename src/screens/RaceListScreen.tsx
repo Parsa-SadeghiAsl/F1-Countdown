@@ -1,16 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
-import {
-  ActivityIndicator,
-  Card,
-  Text,
-  List,
-  Divider,
-} from 'react-native-paper';
-import { getRaceSchedule } from '../services/API';
-import { Race } from '../types';
+import { View, StyleSheet, FlatList, Image } from 'react-native';
+import { ActivityIndicator, Card, Text, List, Divider } from 'react-native-paper';
+import { getScheduleForYear } from '../services/API';
+import { ProcessedEvent, Sessions } from '../types';
+import { colors } from '../styles/theme';
 
-// Represents the calculated time remaining
 interface Countdown {
   days: number;
   hours: number;
@@ -18,204 +12,157 @@ interface Countdown {
   seconds: number;
 }
 
+const getSessionName = (sessionKey: string): string => {
+  const names: Record<string, string> = {
+    fp1: 'Practice 1', fp2: 'Practice 2', fp3: 'Practice 3',
+    sprintQualifying: 'Sprint Qualifying', qualifying: 'Qualifying',
+    sprint: 'Sprint', gp: 'Race',
+  };
+  return names[sessionKey] || 'Event';
+};
+
 const RaceListScreen = (): React.JSX.Element => {
-  const [nextRace, setNextRace] = useState<Race | null>(null);
-  const [upcomingRaces, setUpcomingRaces] = useState<Race[]>([]);
+  const [nextEvent, setNextEvent] = useState<ProcessedEvent | null>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<ProcessedEvent[]>([]);
   const [countdown, setCountdown] = useState<Countdown | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchAndProcessRaces = async () => {
+    const fetchAndProcessEvents = async () => {
       try {
-        const allRaces = await getRaceSchedule('2025');
         const now = new Date();
-
-        const futureRaces = allRaces
-          .map(race => ({
-            ...race,
-            // Combine date and time to create a full Date object in UTC
-            raceDateTime: new Date(`${race.date}T${race.time}`),
-          }))
-          .filter(race => race.raceDateTime > now)
-          .sort((a, b) => a.raceDateTime.getTime() - b.raceDateTime.getTime());
-
-        if (futureRaces.length > 0) {
-          setNextRace(futureRaces[0]);
-          setUpcomingRaces(futureRaces.slice(1));
+        const currentYear = now.getFullYear();
+        let raceEvents = await getScheduleForYear(currentYear);
+        let allEvents: ProcessedEvent[] = [];
+        raceEvents.forEach(race => {
+          for (const sessionKey in race.sessions) {
+            const key = sessionKey as keyof Sessions;
+            const sessionDate = race.sessions[key];
+            if (sessionDate) {
+              allEvents.push({
+                key: `${race.round}-${key}`, eventName: getSessionName(key),
+                raceName: race.name, dateTime: new Date(sessionDate),
+              });
+            }
+          }
+        });
+        let futureEvents = allEvents.filter(e => e.dateTime > now).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+        if (futureEvents.length === 0) {
+          const nextYearRaces = await getScheduleForYear(currentYear + 1);
+          if (nextYearRaces.length > 0) {
+            let nextYearEvents: ProcessedEvent[] = [];
+            nextYearRaces.forEach(race => {
+              for (const sessionKey in race.sessions) {
+                const key = sessionKey as keyof Sessions;
+                const sessionDate = race.sessions[key];
+                if (sessionDate) {
+                  nextYearEvents.push({
+                    key: `${race.round}-${key}`, eventName: getSessionName(key),
+                    raceName: race.name, dateTime: new Date(sessionDate),
+                  });
+                }
+              }
+            });
+            futureEvents = nextYearEvents.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+          }
         }
-      } catch (err) {
-        setError('Failed to fetch race schedule.');
-      } finally {
-        setLoading(false);
-      }
+        if (futureEvents.length > 0) {
+          setNextEvent(futureEvents[0]);
+          setUpcomingEvents(futureEvents.slice(1));
+        }
+      } catch (err) { setError('Failed to fetch F1 schedule.'); console.error(err); } finally { setLoading(false); }
     };
-
-    fetchAndProcessRaces();
+    fetchAndProcessEvents();
   }, []);
 
   useEffect(() => {
-    if (!nextRace) return;
-
+    if (!nextEvent) return;
     const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const raceTime = new Date(
-        `${nextRace.date}T${nextRace.time}`,
-      ).getTime();
-      const distance = raceTime - now;
-
+      const distance = nextEvent.dateTime.getTime() - new Date().getTime();
       if (distance < 0) {
-        clearInterval(timer);
-        setCountdown(null);
-        // Here you might want to refetch races to update the "next race"
+        clearInterval(timer); setCountdown(null);
       } else {
         setCountdown({
-          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-          hours: Math.floor(
-            (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-          ),
-          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((distance % (1000 * 60)) / 1000),
+          days: Math.floor(distance / 86400000),
+          hours: Math.floor((distance % 86400000) / 3600000),
+          minutes: Math.floor((distance % 3600000) / 60000),
+          seconds: Math.floor((distance % 60000) / 1000),
         });
       }
     }, 1000);
+    return () => clearInterval(timer);
+  }, [nextEvent]);
 
-    return () => clearInterval(timer); // Cleanup on component unmount
-  }, [nextRace]);
+  if (loading) return <View style={styles.center}><ActivityIndicator color={colors.primary} size="large" /><Text style={styles.loadingText}>Loading Schedule...</Text></View>;
+  if (error) return <View style={styles.center}><Text style={styles.errorText}>{error}</Text></View>;
+  if (!nextEvent) return <View style={styles.center}><Text>No upcoming events found.</Text></View>;
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Finding Next Race...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
-
-  if (!nextRace) {
-    return (
-      <View style={styles.center}>
-        <Text>No upcoming races found for this season.</Text>
-      </View>
-    );
-  }
-
-  const renderUpcomingRace = ({ item }: { item: Race }) => (
+  const renderUpcomingEvent = ({ item }: { item: ProcessedEvent }) => (
     <List.Item
-      title={item.raceName}
-      description={`${item.Circuit.circuitName}\n${new Date(
-        `${item.date}T${item.time}`,
-      ).toLocaleString()}`}
-      descriptionNumberOfLines={2}
-      left={props => <List.Icon {...props} icon="chevron-right-circle" />}
+      title={`${item.raceName} - ${item.eventName}`}
+      description={item.dateTime.toLocaleString()}
+      titleStyle={{ color: colors.text }}
+      descriptionStyle={{ color: colors.subtle }}
+      left={props => <List.Icon {...props} color={colors.primary} icon="chevron-right-circle" />}
     />
   );
 
   return (
     <View style={styles.container}>
-      <Card style={styles.nextRaceCard} elevation={5}>
+      <View style={styles.logoContainer}>
+        <Image
+          source={require('../assets/f1.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+      <Card style={styles.nextRaceCard} elevation={4}>
         <Card.Content>
-          <Text variant="labelLarge" style={styles.nextRaceSubheading}>NEXT RACE</Text>
-          <Text variant="headlineMedium" style={styles.nextRaceTitle}>{nextRace.raceName}</Text>
-          <Text style={styles.circuitText}>{nextRace.Circuit.circuitName}</Text>
-          <Text style={styles.dateText}>
-            {new Date(`${nextRace.date}T${nextRace.time}`).toLocaleString()}
-          </Text>
+          <Text variant="labelLarge" style={styles.nextRaceSubheading}>NEXT EVENT: {nextEvent.eventName}</Text>
+          <Text variant="headlineMedium" style={styles.nextRaceTitle}>{nextEvent.raceName}</Text>
+          <Text style={styles.dateText}>{nextEvent.dateTime.toLocaleString()}</Text>
           {countdown && (
             <View style={styles.countdownContainer}>
-              <View style={styles.timeBox}>
-                <Text variant="headlineLarge">{countdown.days}</Text>
-                <Text>Days</Text>
-              </View>
-              <View style={styles.timeBox}>
-                <Text variant="headlineLarge">{countdown.hours}</Text>
-                <Text>Hours</Text>
-              </View>
-              <View style={styles.timeBox}>
-                <Text variant="headlineLarge">{countdown.minutes}</Text>
-                <Text>Mins</Text>
-              </View>
-              <View style={styles.timeBox}>
-                <Text variant="headlineLarge">{countdown.seconds}</Text>
-                <Text>Secs</Text>
-              </View>
+              <View style={styles.timeBox}><Text variant="headlineLarge" style={styles.countdownNumber}>{countdown.days}</Text><Text style={styles.countdownLabel}>Days</Text></View>
+              <View style={styles.timeBox}><Text variant="headlineLarge" style={styles.countdownNumber}>{countdown.hours}</Text><Text style={styles.countdownLabel}>Hours</Text></View>
+              <View style={styles.timeBox}><Text variant="headlineLarge" style={styles.countdownNumber}>{countdown.minutes}</Text><Text style={styles.countdownLabel}>Mins</Text></View>
+              <View style={styles.timeBox}><Text variant="headlineLarge" style={styles.countdownNumber}>{countdown.seconds}</Text><Text style={styles.countdownLabel}>Secs</Text></View>
             </View>
           )}
         </Card.Content>
       </Card>
-
-      <Text variant="titleLarge" style={styles.listHeader}>Upcoming Races</Text>
+      <Text variant="titleLarge" style={styles.listHeader}>Upcoming Events</Text>
       <FlatList
-        data={upcomingRaces}
-        keyExtractor={item => item.round}
-        renderItem={renderUpcomingRace}
-        ItemSeparatorComponent={() => <Divider />}
+        data={upcomingEvents}
+        keyExtractor={item => item.key}
+        renderItem={renderUpcomingEvent}
+        ItemSeparatorComponent={() => <Divider style={{ backgroundColor: colors.border }} />}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background },
+  logoContainer: { alignItems: 'center', marginVertical: 20 },
+  logo: {
+    width: 120,
+    height: 30,
+    tintColor: colors.primary,
   },
-  container: {
-    flex: 1,
-  },
-  loadingText: {
-    marginTop: 10,
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-  },
-  nextRaceCard: {
-    margin: 15,
-  },
-  nextRaceSubheading: {
-    textAlign: 'center',
-    color: '#E10600', // F1 Red
-    fontWeight: 'bold',
-  },
-  nextRaceTitle: {
-    textAlign: 'center',
-    fontSize: 28,
-    lineHeight: 30,
-    marginVertical: 5,
-  },
-  circuitText: {
-    textAlign: 'center',
-    marginBottom: 5,
-    fontStyle: 'italic',
-  },
-  dateText: {
-    textAlign: 'center',
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  countdownContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  timeBox: {
-    alignItems: 'center',
-  },
-  listHeader: {
-    marginLeft: 15,
-    marginTop: 10,
-    marginBottom: 5,
-  },
+  loadingText: { marginTop: 10, color: colors.text },
+  errorText: { color: colors.primary, fontSize: 16 },
+  nextRaceCard: { marginHorizontal: 15, backgroundColor: colors.card, borderRadius: 12 },
+  nextRaceSubheading: { textAlign: 'center', color: colors.primary, fontWeight: 'bold' },
+  nextRaceTitle: { textAlign: 'center', color: colors.text, marginVertical: 5 },
+  dateText: { textAlign: 'center', color: colors.subtle, marginBottom: 15, fontSize: 16 },
+  countdownContainer: { flexDirection: 'row', justifyContent: 'space-around' },
+  timeBox: { alignItems: 'center' },
+  countdownNumber: { color: colors.text, fontWeight: 'bold' },
+  countdownLabel: { color: colors.subtle },
+  listHeader: { color: colors.text, marginLeft: 15, marginTop: 20, marginBottom: 5, fontWeight: 'bold' },
 });
 
 export default RaceListScreen;

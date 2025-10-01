@@ -1,52 +1,40 @@
-export interface Location {
-  lat: string;
-  long: string;
-  locality: string;
-  country: string;
+
+
+// Represents a single session's date string
+export type SessionDate = string;
+
+// Represents all possible sessions for a race weekend
+export interface Sessions {
+  fp1?: SessionDate;
+  fp2?: SessionDate;
+  fp3?: SessionDate;
+  sprintQualifying?: SessionDate;
+  qualifying?: SessionDate;
+  sprint?: SessionDate;
+  gp: SessionDate; // The main race is 'gp'
 }
 
-export interface Circuit {
-  circuitId: string;
-  url: string;
-  circuitName: string;
-  Location: Location;
+// Represents a single race event from the new API
+export interface F1RaceEvent {
+  name: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  round: number;
+  slug: string;
+  localeKey: string;
+  sessions: Sessions;
 }
 
-export interface RaceEvent {
-  date: string;
-  time: string;
+// Represents the entire API response
+export interface F1APIResponse {
+  races: F1RaceEvent[];
 }
 
-export interface Race {
-  season: string;
-  round: string;
-  url: string;
-  raceName: string;
-  Circuit: Circuit;
-  date: string;
-  time: string;
-  FirstPractice: RaceEvent;
-  SecondPractice: RaceEvent;
-  ThirdPractice?: RaceEvent; // Optional, as some weekends have Sprints
-  Qualifying: RaceEvent;
-  Sprint?: RaceEvent; // Optional for sprint race weekends
-}
-
-export interface RaceTable {
-  season: string;
-  Races: Race[];
-}
-
-export interface MRData {
-  xmlns: string;
-  series: string;
-  url: string;
-  limit: string;
-  offset: string;
-  total: string;
-  RaceTable: RaceTable;
-}
-
-export interface ApiResponse {
-  MRData: MRData;
+// A processed, flattened event object for use in the UI
+export interface ProcessedEvent {
+  key: string; // Unique key for lists
+  eventName: string; // e.g., "Practice 1", "Qualifying"
+  raceName: string; // e.g., "Bahrain Grand Prix"
+  dateTime: Date; // JavaScript Date object
 }
