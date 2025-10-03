@@ -14,8 +14,7 @@ export default function AppNavigator() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.card,
-          borderTopColor: colors.border,
-        },
+          borderTopColor: colors.border,        },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.subtle,
       }}

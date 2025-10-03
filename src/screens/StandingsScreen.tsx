@@ -65,7 +65,7 @@ const StandingsScreen = ({ navigation }: any): React.JSX.Element => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container}  edges={['top']}>
       <View style={styles.segmentContainer}>
         <SegmentedButtons
           value={view}
@@ -74,6 +74,7 @@ const StandingsScreen = ({ navigation }: any): React.JSX.Element => {
             { value: 'drivers', label: 'Drivers' },
             { value: 'constructors', label: 'Constructors' },
           ]}
+          theme={{ colors: { secondaryContainer: colors.subtle } }}
         />
       </View>
 

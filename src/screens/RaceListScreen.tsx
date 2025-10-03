@@ -157,7 +157,7 @@ const RaceListScreen = (): React.JSX.Element => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.logoContainer}>
         <Image
           source={require('../assets/f1.png')}
@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
   listHeader: {
     color: colors.text,
     marginLeft: 15,
-    marginTop: 20,
-    marginBottom: 5,
+    marginTop: 10,
+    marginBottom: 10,
     fontWeight: 'bold',
   },
 });
