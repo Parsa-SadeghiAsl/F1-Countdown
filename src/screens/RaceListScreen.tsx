@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList, Image } from 'react-native';
-import { ActivityIndicator, Card, Text, List, Divider } from 'react-native-paper';
+import { ActivityIndicator, Card, Text, IconButton, Divider } from 'react-native-paper';
 import { getScheduleForYear } from '../services/API';
 import { ProcessedEvent, Sessions } from '../types';
 import { colors } from '../styles/theme';
@@ -99,13 +99,22 @@ const RaceListScreen = (): React.JSX.Element => {
   if (!nextEvent) return <View style={styles.center}><Text>No upcoming events found.</Text></View>;
 
   const renderUpcomingEvent = ({ item }: { item: ProcessedEvent }) => (
-    <List.Item
-      title={`${item.raceName} - ${item.eventName}`}
-      description={item.dateTime.toLocaleString()}
-      titleStyle={{ color: colors.text }}
-      descriptionStyle={{ color: colors.subtle }}
-      left={props => <List.Icon {...props} color={colors.primary} icon="chevron-right-circle" />}
-    />
+    // <List.Item
+    //   title={`${item.raceName} - ${item.eventName}`}
+    //   description={item.dateTime.toLocaleString()}
+    //   titleStyle={{ color: colors.text }}
+    //   descriptionStyle={{ color: colors.subtle }}
+    //   left={props => <List.Icon {...props} color={colors.primary} icon="chevron-right-circle" />}
+    // />
+    <Card style={styles.calendercard}>
+      <Card.Title
+          title={`${item.raceName} - ${item.eventName}`}
+          subtitle={item.dateTime.toLocaleString()}
+          right={(props) =>
+              <IconButton {...props} iconColor={colors.primary} icon="chevron-right-circle" />}
+      />
+
+    </Card>
   );
 
   return (
@@ -137,7 +146,6 @@ const RaceListScreen = (): React.JSX.Element => {
         data={upcomingEvents}
         keyExtractor={item => item.key}
         renderItem={renderUpcomingEvent}
-        ItemSeparatorComponent={() => <Divider style={{ backgroundColor: colors.border }} />}
       />
     </View>
   );
@@ -153,6 +161,7 @@ const styles = StyleSheet.create({
     tintColor: colors.primary,
   },
   loadingText: { marginTop: 10, color: colors.text },
+  calendercard: { margin: 10, backgroundColor: colors.card},
   errorText: { color: colors.primary, fontSize: 16 },
   nextRaceCard: { marginHorizontal: 15, backgroundColor: colors.card, borderRadius: 12 },
   nextRaceSubheading: { textAlign: 'center', color: colors.primary, fontWeight: 'bold' },

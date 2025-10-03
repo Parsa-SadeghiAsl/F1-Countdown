@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "F1App",
-    "slug": "F1App",
+    "name": "F1Calender",
+    "slug": "F1Calender",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#eeeeee"
     },
     "ios": {
       "supportsTablet": true
@@ -18,13 +18,19 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#eeeeee"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.F1Calender"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "906bead7-beed-44a3-9bc0-e4d2f94eb509"
+      }
     }
   }
 }
