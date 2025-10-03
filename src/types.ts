@@ -1,5 +1,3 @@
-
-
 // Represents a single session's date string
 export type SessionDate = string;
 
@@ -37,4 +35,60 @@ export interface ProcessedEvent {
   eventName: string; // e.g., "Practice 1", "Qualifying"
   raceName: string; // e.g., "Bahrain Grand Prix"
   dateTime: Date; // JavaScript Date object
+}
+
+// --- Interfaces for Standings ---
+
+export interface Driver {
+  driverId: string;
+  permanentNumber: string;
+  code: string;
+  givenName: string;
+  familyName: string;
+  nationality: string;
+}
+
+export interface Constructor {
+  constructorId: string;
+  name: string;
+  nationality: string;
+}
+
+export interface DriverStanding {
+  position: string;
+  points: string;
+  wins: string;
+  Driver: Driver;
+  Constructors: Constructor[];
+}
+
+export interface ConstructorStanding {
+  position: string;
+  points: string;
+  wins: string;
+  Constructor: Constructor;
+}
+
+interface StandingsList<T> {
+  season: string;
+  round: string;
+  DriverStandings?: T[];
+  ConstructorStandings?: T[];
+}
+
+interface StandingsTable<T> {
+  season: string;
+  StandingsLists: StandingsList<T>[];
+}
+
+interface MRData<T> {
+  StandingsTable: StandingsTable<T>;
+}
+
+export interface DriverStandingsResponse {
+  MRData: MRData<DriverStanding>;
+}
+
+export interface ConstructorStandingsResponse {
+  MRData: MRData<ConstructorStanding>;
 }

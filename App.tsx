@@ -1,22 +1,37 @@
-// App.tsx
-import React from 'react';
-import { StatusBar } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { Provider as PaperProvider } from 'react-native-paper';
+import React, { useState } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { BottomNavigation, Provider as PaperProvider } from 'react-native-paper';
 import RaceListScreen from './src/screens/RaceListScreen';
-import { theme, colors } from './src/styles/theme';
+import StandingsScreen from './src/screens/StandingsScreen';
+import { theme } from './src/styles/theme';
 
 const App = (): React.JSX.Element => {
+  const [index, setIndex] = useState(0);
+  const [routes] = useState([
+    { key: 'schedule', title: 'Schedule', focusedIcon: 'calendar-clock', unfocusedIcon: 'calendar-clock-outline'},
+    { key: 'standings', title: 'Standings', focusedIcon: 'trophy', unfocusedIcon: 'trophy-outline' },
+  ]);
+
+  const renderScene = BottomNavigation.SceneMap({
+    schedule: RaceListScreen,
+    standings: StandingsScreen,
+  });
+
   return (
     <PaperProvider theme={theme}>
       <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-          <StatusBar barStyle={'light-content'} backgroundColor={colors.background} />
-          <RaceListScreen />
-        </SafeAreaView>
+        <BottomNavigation
+          navigationState={{ index, routes }}
+          onIndexChange={setIndex}
+          renderScene={renderScene}
+          barStyle={{ backgroundColor: theme.colors.surface }}
+          activeColor={theme.colors.primary}
+          inactiveColor={theme.colors.onSurfaceDisabled}
+        />
       </SafeAreaProvider>
     </PaperProvider>
   );
 };
 
 export default App;
+
