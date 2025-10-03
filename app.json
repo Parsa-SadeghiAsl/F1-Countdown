@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "F1Calender",
-    "slug": "F1Calender",
+    "name": "F1 Countdown",
+    "slug": "F1 Countdown",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,7 +22,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.F1Calender"
+      "package": "com.anonymous.F1 Countdown"
     },
     "web": {
       "favicon": "./assets/favicon.png"
