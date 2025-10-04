@@ -63,7 +63,7 @@ export const getLatestSession = async (): Promise<LiveSession | null> => {
     if (meetingResponse.data.length === 0) return null;
 
     // Sort meetings by date to find the most recent one.
-    const latestMeeting = meetingResponse.data.sort((a,b) => new Date(b.date_start).getTime() - new Date(a.date_start).getTime())[1];
+    const latestMeeting = meetingResponse.data.sort((a,b) => new Date(b.date_start).getTime() - new Date(a.date_start).getTime())[0];
     if (!latestMeeting) return null;
     
     const meetingKey = latestMeeting.meeting_key;
@@ -93,7 +93,7 @@ export const getLatestSession = async (): Promise<LiveSession | null> => {
     if (recentSessions.length > 0) {
       const mostRecent = recentSessions[0];
       // If it ended less than 12 hours ago, we can show its final results.
-      if (now.getTime() - new Date(mostRecent.date_end).getTime() < 120000 * 60 * 60 * 1000) {
+      if (now.getTime() - new Date(mostRecent.date_end).getTime() < 12 * 60 * 60 * 1000) {
         return { ...mostRecent, isLive: false };
       }
     }

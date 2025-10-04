@@ -72,6 +72,12 @@ const LiveLeaderboardScreen = (): React.JSX.Element => {
     results: LiveSessionResult[],
     sessionName: string
   ): LeaderboardEntry[] => {
+    results.forEach(result => {
+      result.position = result.dnf ? 100 : result.position
+      result.position = result.dsq ? 101 : result.position
+      result.position = result.dns ? 102 : result.position
+      result.position = result.position == null ? 103 :result.position
+    });
     const sortedResults = results.sort((a, b) => a.position - b.position);
     console.log(results)
     const leaderTime = sortedResults[0]?.duration;
@@ -79,7 +85,6 @@ const LiveLeaderboardScreen = (): React.JSX.Element => {
     return sortedResults.map(result => {
       const driverInfo = driverMap.get(result.driver_number);
       if (!driverInfo) return null;
-
       let display_time = '';
       if (sessionName.toLowerCase().includes('race')) {
         if (result.status !== 'Finished') {
@@ -191,7 +196,7 @@ const LiveLeaderboardScreen = (): React.JSX.Element => {
       <Card style={styles.itemCard}>
         <View style={styles.itemContainer}>
           <View style={[styles.teamColorBar, { backgroundColor: item.team_colour || colors.subtle }]} />
-          <Text style={styles.position}>{item.position}</Text>
+          <Text style={styles.position}>{item.position === 100 ? 'DNF':item.position === 101 ? 'DSQ': item.position === 102 ? 'DNS': item.position == 103 ? "N/A": item.position}</Text>
           <Image source={{ uri: item.headshot_url }} style={styles.headshot} />
           <View style={styles.driverInfo}>
             <Text style={styles.title}>{item.full_name}</Text>

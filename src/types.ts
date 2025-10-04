@@ -137,7 +137,10 @@ export interface LiveSessionResult {
   points?: number;
   time?: number;
   best_lap_time?: number;
-  duration: Array<number>;
+  duration: any;
+  dnf: boolean;
+  dsq: boolean;
+  dns: boolean;
 }
 
 export interface LeaderboardEntry {
