@@ -29,7 +29,6 @@ export interface F1APIResponse {
   races: F1RaceEvent[];
 }
 
-// A processed, flattened event object for use in the UI
 export interface ProcessedEvent {
   key: string; // Unique key for lists
   eventName: string; // e.g., "Practice 1", "Qualifying"
@@ -92,3 +91,66 @@ export interface DriverStandingsResponse {
 export interface ConstructorStandingsResponse {
   MRData: MRData<ConstructorStanding>;
 }
+
+// --- Interfaces for Live Leaderboard ---
+
+export interface LiveSession {
+  session_key: number;
+  session_name: string;
+  meeting_key: number;
+  date_start: string;
+  date_end: string;
+  isLive?: boolean;
+  circuit_short_name: string;
+}
+
+export interface LiveDriver {
+  driver_number: number;
+  full_name: string;
+  team_name: string;
+  team_colour: string;
+  headshot_url: string;
+}
+
+export interface LivePosition {
+  session_key: number;
+  meeting_key: number;
+  driver_number: number;
+  date: string;
+  position: number;
+}
+
+export interface LiveInterval {
+  session_key: number;
+  meeting_key: number;
+  driver_number: number;
+  date: string;
+  gap_to_leader?: string;
+  interval?: string;
+}
+
+export interface LiveSessionResult {
+  session_key: number;
+  driver_number: number;
+  position: number;
+  status: string;
+  points?: number;
+  time?: number;
+  best_lap_time?: number;
+  duration: Array<number>;
+}
+
+export interface LeaderboardEntry {
+  driver_number: number;
+  full_name: string;
+  team_name: string;
+  team_colour: string;
+  headshot_url: string;
+  position: number;
+  gap_to_leader?: string;
+  interval?: string;
+  status?: string;
+  points?: number;
+  display_time?: string;
+}
+
