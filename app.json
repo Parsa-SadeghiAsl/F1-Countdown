@@ -2,6 +2,7 @@
   "expo": {
     "name": "F1 Countdown",
     "slug": "F1 Countdown",
+    "scheme": "f1countdown",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
