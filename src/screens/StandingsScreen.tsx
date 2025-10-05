@@ -11,9 +11,6 @@ import { getDriverStandings, getConstructorStandings, getLatestDrivers } from '.
 import { DriverStanding, ConstructorStanding, LiveDriver } from '../types';
 import { colors, globalStyles } from '../styles/globalStyles';
 
-// Helper to create a consistent key for drivers
-const createDriverKey = (name: string) => name.toLowerCase().replace(/[^a-z]/g, '');
-
 const StandingsScreen = (): React.JSX.Element => {
   const [drivers, setDrivers] = useState<DriverStanding[]>([]);
   const [constructors, setConstructors] = useState<ConstructorStanding[]>([]);
@@ -44,9 +41,10 @@ const StandingsScreen = (): React.JSX.Element => {
         const colorMap = new Map<string, string>();
         liveDriversData.forEach(driver => {
           if (driver.team_name && driver.team_colour && !colorMap.has(driver.team_name)) {
-            colorMap.set(driver.team_name, `#${driver.team_colour}`);
+            colorMap.set(driver.team_name == 'Kick Sauber' ? 'sauber': driver.team_name == 'Racing Bulls' ? 'rb f1 team': driver.team_name , `#${driver.team_colour}`);
           }
         });
+
 
         const finalConstructorColors = new Map<string, string>();
         if (constructorData) {
@@ -72,7 +70,7 @@ const StandingsScreen = (): React.JSX.Element => {
   }, []);
 
   const renderDriver: ListRenderItem<DriverStanding> = ({ item }) => {
-    const liveDriver = liveDrivers.get(Number(item.Driver.permanentNumber));
+    const liveDriver = liveDrivers.get(Number(item.Driver.permanentNumber) == 33 ? 1 :Number(item.Driver.permanentNumber));
     const teamColor = liveDriver?.team_colour ? `#${liveDriver.team_colour}` : colors.subtle;
 
     return (
