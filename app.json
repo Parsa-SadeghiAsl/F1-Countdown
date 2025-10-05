@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "F1 Countdown",
-    "slug": "F1 Countdown",
+    "slug": "f1-countdown",
     "scheme": "f1countdown",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -23,7 +23,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.F1 Countdown"
+      "package": "com.parsa.f1countdown"
     },
     "web": {
       "favicon": "./assets/favicon.png"

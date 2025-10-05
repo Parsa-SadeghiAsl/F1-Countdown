@@ -93,7 +93,7 @@ export const getLatestSession = async (): Promise<LiveSession | null> => {
     if (recentSessions.length > 0) {
       const mostRecent = recentSessions[0];
       // If it ended less than 12 hours ago, we can show its final results.
-      if (now.getTime() - new Date(mostRecent.date_end).getTime() < 12 * 60 * 60 * 1000) {
+      if (now.getTime() - new Date(mostRecent.date_end).getTime() < 120 * 60 * 60 * 1000) {
         return { ...mostRecent, isLive: false };
       }
     }
@@ -116,6 +116,15 @@ export const getDrivers = async (session_key: number): Promise<LiveDriver[]> => 
   }
 }
 
+export const getLatestDrivers = async (): Promise<LiveDriver[]> => {
+  try {
+    const response = await axios.get<LiveDriver[]>(`${OPENF1_API_URL}drivers?session_key=latest`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching latest drivers:', error);
+    return [];
+  }
+}
 
 export const getPositions = async (session_key: number): Promise<LivePosition[]> => {
   try {
@@ -150,4 +159,3 @@ export const getSessionResults = async (session_key: number): Promise<LiveSessio
     return [];
   }
 }
-

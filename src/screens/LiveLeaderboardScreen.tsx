@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Image } from 'react-native';
+import { View, FlatList, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Card, Text } from 'react-native-paper';
 import { getLatestSession, getDrivers, getPositions, getIntervals, getSessionResults } from '../services/API';
 import { LiveSession, LiveDriver, LivePosition, LiveInterval, LeaderboardEntry, LiveSessionResult } from '../types';
-import { colors } from '../styles/theme';
+import { colors, globalStyles } from '../styles/globalStyles';
 
 const POLLING_INTERVAL = 5000; // 5 seconds
 
@@ -79,7 +79,6 @@ const LiveLeaderboardScreen = (): React.JSX.Element => {
       result.position = result.position == null ? 103 :result.position
     });
     const sortedResults = results.sort((a, b) => a.position - b.position);
-    console.log(results)
     const leaderTime = sortedResults[0]?.duration;
 
     return sortedResults.map(result => {
@@ -180,27 +179,27 @@ const LiveLeaderboardScreen = (): React.JSX.Element => {
   const renderLeaderboardItem = ({ item }: { item: LeaderboardEntry }) => {
     const timingDisplay = session?.isLive
       ? (
-        <View style={styles.timingInfo}>
-          <Text style={styles.gapText}>{item.position === 1 ? item.interval || 'LAP' : item.gap_to_leader || '--'}</Text>
-          <Text style={styles.intervalText}>{item.position > 1 && (item.interval || '--')}</Text>
+        <View style={globalStyles.timingInfo}>
+          <Text style={globalStyles.gapText}>{item.position === 1 ? item.interval || 'LAP' : item.gap_to_leader || '--'}</Text>
+          <Text style={globalStyles.intervalText}>{item.position > 1 && (item.interval || '--')}</Text>
         </View>
       )
       : (
-        <View style={styles.timingInfo}>
-          <Text style={styles.gapText}>{item.display_time}</Text>
-          {item.points && item.points > 0 ? <Text style={styles.pointsText}>+{item.points} PTS</Text> : null}
+        <View style={globalStyles.timingInfo}>
+          <Text style={globalStyles.gapText}>{item.display_time}</Text>
+          {item.points && item.points > 0 ? <Text style={globalStyles.pointsText}>+{item.points} PTS</Text> : null}
         </View>
       );
 
     return (
-      <Card style={styles.itemCard}>
-        <View style={styles.itemContainer}>
-          <View style={[styles.teamColorBar, { backgroundColor: item.team_colour || colors.subtle }]} />
-          <Text style={styles.position}>{item.position === 100 ? 'DNF':item.position === 101 ? 'DSQ': item.position === 102 ? 'DNS': item.position == 103 ? "N/A": item.position}</Text>
-          <Image source={{ uri: item.headshot_url }} style={styles.headshot} />
-          <View style={styles.driverInfo}>
-            <Text style={styles.title}>{item.full_name}</Text>
-            <Text style={styles.subtitle}>{item.team_name}</Text>
+      <Card style={globalStyles.itemCard}>
+        <View style={globalStyles.itemContainer}>
+          <View style={[globalStyles.teamColorBar, { backgroundColor: item.team_colour || colors.subtle }]} />
+          <Text style={globalStyles.position}>{item.position === 100 ? 'DNF':item.position === 101 ? 'DSQ': item.position === 102 ? 'DNS': item.position == 103 ? "N/A": item.position}</Text>
+          <Image source={{ uri: item.headshot_url }} style={globalStyles.headshot} />
+          <View style={globalStyles.driverInfo}>
+            <Text style={globalStyles.title}>{item.full_name}</Text>
+            <Text style={globalStyles.subtitle}>{item.team_name}</Text>
           </View>
           {timingDisplay}
         </View>
@@ -209,60 +208,60 @@ const LiveLeaderboardScreen = (): React.JSX.Element => {
   };
 
   const ListHeader = () => (
-    <View style={styles.headerContainer}>
-      <View style={styles.headerTitleContainer}>
-        <Text variant="headlineSmall" style={styles.headerTitle}>{session?.session_name} - {session?.circuit_short_name}</Text>
+    <View style={globalStyles.headerContainer}>
+      <View style={globalStyles.headerTitleContainer}>
+        <Text variant="headlineSmall" style={globalStyles.headerTitle}>{session?.session_name}</Text>
         {session?.isLive && (
-          <View style={styles.liveIndicator}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
+          <View style={globalStyles.liveIndicator}>
+            <View style={globalStyles.liveDot} />
+            <Text style={globalStyles.liveText}>LIVE</Text>
           </View>
         )}
       </View>
-      <Text variant="bodyMedium" style={styles.headerSubtitle}>
-        {session?.isLive ? 'Live Leaderboard' : 'Final Results'}
+      <Text variant="bodyMedium" style={globalStyles.headerSubtitle}>
+        {session?.isLive ?`Live Leaderboard - ${session?.circuit_short_name}` : `Final Results - ${session?.circuit_short_name}`}
       </Text>
     </View>
   );
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={globalStyles.center}>
         <ActivityIndicator color={colors.primary} size="large" />
-        <Text style={styles.messageText}>Searching for a live session...</Text>
+        <Text style={globalStyles.messageText}>Searching for a live session...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={globalStyles.center}>
+        <Text style={globalStyles.errorText}>{error}</Text>
       </View>
     );
   }
 
   if (!session) {
     return (
-      <View style={styles.center}>
-        <Image source={require('../assets/f1.png')} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.messageText}>No live or recent F1 event found.</Text>
-        <Text style={styles.messageSubText}>Check back during a race weekend!</Text>
+      <View style={globalStyles.center}>
+        <Image source={require('../assets/f1.png')} style={globalStyles.logo} resizeMode="contain" />
+        <Text style={globalStyles.messageText}>No live or recent F1 event found.</Text>
+        <Text style={globalStyles.messageSubText}>Check back during a race weekend!</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={globalStyles.container} edges={['top']}>
       <FlatList
         data={leaderboard}
         renderItem={renderLeaderboardItem}
         keyExtractor={(item) => item.driver_number.toString()}
         ListHeaderComponent={<ListHeader />}
         ListEmptyComponent={() => (
-          <View style={styles.center}>
+          <View style={globalStyles.center}>
             <ActivityIndicator color={colors.primary} />
-            <Text style={styles.messageText}>Waiting for session data...</Text>
+            <Text style={globalStyles.messageText}>Waiting for session data...</Text>
           </View>
         )}
       />
@@ -270,135 +269,4 @@ const LiveLeaderboardScreen = (): React.JSX.Element => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: colors.background,
-  },
-  logo: {
-    width: 120,
-    height: 30,
-    tintColor: colors.primary,
-    marginBottom: 20,
-  },
-  messageText: {
-    color: colors.text,
-    fontSize: 18,
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  messageSubText: {
-    color: colors.subtle,
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  errorText: { color: colors.primary, fontSize: 16 },
-  headerContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 30,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  headerTitle: {
-    color: colors.text,
-    fontWeight: 'bold',
-  },
-  headerSubtitle: {
-    color: colors.subtle,
-    marginTop: 4,
-  },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'white',
-    marginRight: 6,
-  },
-  liveText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  itemCard: {
-    marginHorizontal: 16,
-    marginVertical: 4,
-    backgroundColor: colors.card,
-    overflow: 'hidden',
-  },
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  teamColorBar: {
-    width: 6,
-    height: '100%',
-  },
-  position: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    width: 40,
-    textAlign: 'center',
-  },
-  headshot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  driverInfo: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  subtitle: {
-    color: colors.subtle,
-  },
-  timingInfo: {
-    alignItems: 'flex-end',
-    paddingRight: 12
-  },
-  gapText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  intervalText: {
-    fontSize: 12,
-    color: colors.subtle,
-    marginTop: 2
-  },
-  pointsText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-});
-
 export default LiveLeaderboardScreen;
-

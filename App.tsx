@@ -4,7 +4,7 @@ import { BottomNavigation, Provider as PaperProvider } from 'react-native-paper'
 import RaceListScreen from './src/screens/RaceListScreen';
 import StandingsScreen from './src/screens/StandingsScreen';
 import LiveLeaderboardScreen from './src/screens/LiveLeaderboardScreen';
-import { theme } from './src/styles/theme';
+import { theme } from './src/styles/globalStyles';
 
 const App = (): React.JSX.Element => {
   const [index, setIndex] = useState(0);

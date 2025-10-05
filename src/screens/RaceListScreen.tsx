@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList, Image } from 'react-native';
+import { View, FlatList, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
@@ -9,7 +9,7 @@ import {
 } from 'react-native-paper';
 import { getScheduleForYear } from '../services/API';
 import { ProcessedEvent, Sessions } from '../types';
-import { colors } from '../styles/theme';
+import { colors, globalStyles } from '../styles/globalStyles';
 
 interface Countdown {
   days: number;
@@ -120,26 +120,26 @@ const RaceListScreen = (): React.JSX.Element => {
 
   if (loading)
     return (
-      <View style={styles.center}>
+      <View style={globalStyles.center}>
         <ActivityIndicator color={colors.primary} size="large" />
-        <Text style={styles.loadingText}>Loading Schedule...</Text>
+        <Text style={globalStyles.loadingText}>Loading Schedule...</Text>
       </View>
     );
   if (error)
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={globalStyles.center}>
+        <Text style={globalStyles.errorText}>{error}</Text>
       </View>
     );
   if (!nextEvent)
     return (
-      <View style={styles.center}>
+      <View style={globalStyles.center}>
         <Text>No upcoming events found.</Text>
       </View>
     );
 
   const renderUpcomingEvent = ({ item }: { item: ProcessedEvent }) => (
-    <Card style={styles.calenderCard}>
+    <Card style={globalStyles.calendarCard}>
       <Card.Title
         title={`${item.raceName} - ${item.eventName}`}
         subtitle={item.dateTime.toLocaleString()}
@@ -157,56 +157,56 @@ const RaceListScreen = (): React.JSX.Element => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.logoContainer}>
+    <SafeAreaView style={globalStyles.container} edges={['top']}>
+      <View style={globalStyles.logoContainer}>
         <Image
           source={require('../assets/f1.png')}
-          style={styles.logo}
+          style={globalStyles.logo}
           resizeMode="contain"
         />
       </View>
-      <Card style={styles.nextRaceCard} elevation={4}>
+      <Card style={globalStyles.nextRaceCard} elevation={4}>
         <Card.Content>
-          <Text variant="labelLarge" style={styles.nextRaceSubheading}>
+          <Text variant="labelLarge" style={globalStyles.nextRaceSubheading}>
             NEXT EVENT: {nextEvent.eventName}
           </Text>
-          <Text variant="headlineMedium" style={styles.nextRaceTitle}>
+          <Text variant="headlineMedium" style={globalStyles.nextRaceTitle}>
             {nextEvent.raceName}
           </Text>
-          <Text style={styles.dateText}>
+          <Text style={globalStyles.dateText}>
             {nextEvent.dateTime.toLocaleString()}
           </Text>
           {countdown && (
-            <View style={styles.countdownContainer}>
-              <View style={styles.timeBox}>
-                <Text variant="headlineLarge" style={styles.countdownNumber}>
+            <View style={globalStyles.countdownContainer}>
+              <View style={globalStyles.timeBox}>
+                <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
                   {countdown.days}
                 </Text>
-                <Text style={styles.countdownLabel}>Days</Text>
+                <Text style={globalStyles.countdownLabel}>Days</Text>
               </View>
-              <View style={styles.timeBox}>
-                <Text variant="headlineLarge" style={styles.countdownNumber}>
+              <View style={globalStyles.timeBox}>
+                <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
                   {countdown.hours}
                 </Text>
-                <Text style={styles.countdownLabel}>Hours</Text>
+                <Text style={globalStyles.countdownLabel}>Hours</Text>
               </View>
-              <View style={styles.timeBox}>
-                <Text variant="headlineLarge" style={styles.countdownNumber}>
+              <View style={globalStyles.timeBox}>
+                <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
                   {countdown.minutes}
                 </Text>
-                <Text style={styles.countdownLabel}>Mins</Text>
+                <Text style={globalStyles.countdownLabel}>Mins</Text>
               </View>
-              <View style={styles.timeBox}>
-                <Text variant="headlineLarge" style={styles.countdownNumber}>
+              <View style={globalStyles.timeBox}>
+                <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
                   {countdown.seconds}
                 </Text>
-                <Text style={styles.countdownLabel}>Secs</Text>
+                <Text style={globalStyles.countdownLabel}>Secs</Text>
               </View>
             </View>
           )}
         </Card.Content>
       </Card>
-      <Text variant="titleLarge" style={styles.listHeader}>
+      <Text variant="titleLarge" style={globalStyles.listHeader}>
         Upcoming Events
       </Text>
       <FlatList
@@ -217,56 +217,5 @@ const RaceListScreen = (): React.JSX.Element => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  container: { flex: 1, backgroundColor: colors.background },
-  logoContainer: { alignItems: 'center', marginVertical: 20, marginTop: 40, },
-  logo: {
-    width: 120,
-    height: 30,
-    tintColor: colors.primary,
-  },
-  loadingText: { marginTop: 10, color: colors.text },
-  calenderCard: { marginHorizontal: 10, marginBottom: 10, backgroundColor: colors.card },
-  errorText: { color: colors.primary, fontSize: 16 },
-  nextRaceCard: {
-    marginHorizontal: 15,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-  },
-  nextRaceSubheading: {
-    textAlign: 'center',
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-  nextRaceTitle: {
-    textAlign: 'center',
-    color: colors.text,
-    marginVertical: 5,
-  },
-  dateText: {
-    textAlign: 'center',
-    color: colors.subtle,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  countdownContainer: { flexDirection: 'row', justifyContent: 'space-around' },
-  timeBox: { alignItems: 'center' },
-  countdownNumber: { color: colors.text, fontWeight: 'bold' },
-  countdownLabel: { color: colors.subtle },
-  listHeader: {
-    color: colors.text,
-    marginLeft: 15,
-    marginTop: 10,
-    marginBottom: 10,
-    fontWeight: 'bold',
-  },
-});
 
 export default RaceListScreen;
