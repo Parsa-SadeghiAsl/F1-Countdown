@@ -12,7 +12,7 @@ import {
 } from '../types';
 
 const SCHEDULE_API_URL = 'https://raw.githubusercontent.com/sportstimes/f1/main/_db/f1/';
-const ERGAST_API_URL = 'http://api.jolpi.ca/ergast/f1/';
+const ERGAST_API_URL = 'https://api.jolpi.ca/ergast/f1/';
 const OPENF1_API_URL = 'https://api.openf1.org/v1/';
 
 export const getScheduleForYear = async (
