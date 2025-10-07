@@ -226,4 +226,28 @@ export const globalStyles = StyleSheet.create({
     color: colors.primary,
     paddingHorizontal: 16,
   },
+  chipContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  chip: {
+    backgroundColor: colors.card,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipText: {
+    color: colors.subtle,
+    fontWeight: 'bold',
+  },
+  chipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipTextSelected: {
+    color: colors.text,
+  },
 });

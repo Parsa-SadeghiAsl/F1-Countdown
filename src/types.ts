@@ -157,3 +157,9 @@ export interface LeaderboardEntry {
   display_time?: string;
 }
 
+export interface Meeting {
+  meeting_key: number;
+  meeting_name: string;
+  circuit_short_name: string;
+  date_start: string;
+}

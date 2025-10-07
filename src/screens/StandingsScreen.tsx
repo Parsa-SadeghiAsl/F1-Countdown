@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Image, ListRenderItem } from 'react-native';
+import { View, FlatList, Image, ListRenderItem, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Card,
   Text,
-  SegmentedButtons,
 } from 'react-native-paper';
 import { getDriverStandings, getConstructorStandings, getLatestDrivers } from '../services/API';
 import { DriverStanding, ConstructorStanding, LiveDriver } from '../types';
@@ -108,31 +107,63 @@ const StandingsScreen = (): React.JSX.Element => {
       </Card>
     );
   };
+  
+  const ListHeader = () => (
+    <View style={styles.chipContainer}>
+        <Pressable
+          onPress={() => setView('drivers')}
+          style={[globalStyles.chip, styles.chip, view === 'drivers' && globalStyles.chipSelected]}
+        >
+          <Text style={[globalStyles.chipText, styles.chipText, view === 'drivers' && globalStyles.chipTextSelected]}>
+            Drivers
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setView('constructors')}
+          style={[globalStyles.chip, styles.chip, view === 'constructors' && globalStyles.chipSelected]}
+        >
+          <Text style={[globalStyles.chipText, styles.chipText, view === 'constructors' && globalStyles.chipTextSelected]}>
+            Constructors
+          </Text>
+        </Pressable>
+    </View>
+  );
 
   return (
     <SafeAreaView style={globalStyles.container} edges={['top']}>
-      <View style={globalStyles.segmentContainer}>
-        <SegmentedButtons
-          value={view}
-          onValueChange={setView}
-          buttons={[
-            { value: 'drivers', label: 'Drivers' },
-            { value: 'constructors', label: 'Constructors' },
-          ]}
-        />
-      </View>
-
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 20 }} size="large" color={colors.primary} />
-      ) : (
-        <FlatList
-          data={view === 'drivers' ? drivers : constructors}
-          renderItem={view === 'drivers' ? renderDriver as any : renderConstructor as any}
-          keyExtractor={(item: any) => item.position}
-        />
-      )}
+      <FlatList
+        ListHeaderComponent={<ListHeader />}
+        data={view === 'drivers' ? drivers : constructors}
+        renderItem={view === 'drivers' ? renderDriver as any : renderConstructor as any}
+        keyExtractor={(item: any) => item.position}
+        ListEmptyComponent={() => (
+          <View style={globalStyles.center}>
+            {loading ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Text style={globalStyles.messageText}>No standings available.</Text>
+            )}
+          </View>
+        )}
+      />
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  chipContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  chip: {
+    width: 150,
+    marginHorizontal: 8,
+  },
+  chipText: {
+    textAlign: 'center',
+  }
+});
 
 export default StandingsScreen;
