@@ -5,6 +5,8 @@ import RaceListScreen from './src/screens/RaceListScreen';
 import StandingsScreen from './src/screens/StandingsScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import { theme } from './src/styles/globalStyles';
+import { StatusBar } from 'expo-status-bar';
+import { View } from 'react-native';
 
 const App = (): React.JSX.Element => {
   const [index, setIndex] = useState(0);
@@ -23,14 +25,17 @@ const App = (): React.JSX.Element => {
   return (
     <PaperProvider theme={theme}>
       <SafeAreaProvider>
-        <BottomNavigation
-          navigationState={{ index, routes }}
-          onIndexChange={setIndex}
-          renderScene={renderScene}
-          barStyle={{ backgroundColor: theme.colors.surface }}
-          activeColor={theme.colors.primary}
-          inactiveColor={theme.colors.onSurfaceDisabled}
-        />
+        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+          <StatusBar style="light" />
+          <BottomNavigation
+            navigationState={{ index, routes }}
+            onIndexChange={setIndex}
+            renderScene={renderScene}
+            barStyle={{ backgroundColor: theme.colors.surface }}
+            activeColor={theme.colors.primary}
+            inactiveColor={theme.colors.onSurfaceDisabled}
+          />
+        </View>
       </SafeAreaProvider>
     </PaperProvider>
   );

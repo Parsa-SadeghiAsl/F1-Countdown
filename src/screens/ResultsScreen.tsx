@@ -1,27 +1,23 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, FlatList, Image, ScrollView, Pressable, Dimensions } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, FlatList, Image, Modal, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Card, Text } from 'react-native-paper';
+import { ActivityIndicator, Card, Text, Button, Divider, Portal } from 'react-native-paper';
 import { getMeetings, getSessions, getDrivers, getSessionResults } from '../services/API';
 import { LiveSession, LiveDriver, LeaderboardEntry, LiveSessionResult, Meeting } from '../types';
 import { colors, globalStyles } from '../styles/globalStyles';
 
-const { width: screenWidth } = Dimensions.get('window');
-
 const ResultsScreen = (): React.JSX.Element => {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [selectedMeeting, setSelectedMeeting] = useState<number | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [sessions, setSessions] = useState<LiveSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<number | null>(null);
+  const [selectedSession, setSelectedSession] = useState<LiveSession | null>(null);
   const [drivers, setDrivers] = useState<Map<number, LiveDriver>>(new Map());
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const meetingScrollViewRef = useRef<ScrollView>(null);
-  const sessionScrollViewRef = useRef<ScrollView>(null);
-  const meetingLayouts = useRef<Map<number, { x: number; width: number }>>(new Map());
-  const sessionLayouts = useRef<Map<number, { x: number; width: number }>>(new Map());
+  const [meetingModalVisible, setMeetingModalVisible] = useState(false);
+  const [sessionModalVisible, setSessionModalVisible] = useState(false);
 
   useEffect(() => {
     const initialize = async () => {
@@ -33,7 +29,7 @@ const ResultsScreen = (): React.JSX.Element => {
         setMeetings(meetingsData);
         if (meetingsData.length > 0) {
           const lastMeeting = meetingsData[meetingsData.length - 1];
-          setSelectedMeeting(lastMeeting.meeting_key);
+          setSelectedMeeting(lastMeeting);
         }
       } catch (err) {
         setError('Could not load season data.');
@@ -48,12 +44,11 @@ const ResultsScreen = (): React.JSX.Element => {
   useEffect(() => {
     if (selectedMeeting) {
       const fetchSessions = async () => {
-        const sessionsData = await getSessions(selectedMeeting);
+        const sessionsData = await getSessions(selectedMeeting.meeting_key);
         setSessions(sessionsData);
         if (sessionsData.length > 0) {
-          // Select the last session by default (usually the race)
-          const lastSession = sessionsData[sessionsData.length - 1];
-          setSelectedSession(lastSession.session_key);
+          const lastSession = sessionsData.find(s => s.session_name === 'Race') || sessionsData[sessionsData.length - 1];
+          setSelectedSession(lastSession);
         }
       };
       fetchSessions();
@@ -106,7 +101,7 @@ const ResultsScreen = (): React.JSX.Element => {
             display_time = `Q${i+1} ${formatTime(result.duration[i])}`
           }
         }
-      
+
       } else { // Practice or Sprint Shootout
         display_time = formatTime(result.duration) || 'N/A';
       }
@@ -130,13 +125,12 @@ const ResultsScreen = (): React.JSX.Element => {
       const fetchResults = async () => {
         setLoading(true);
         try {
-          const driverData = await getDrivers(selectedSession);
+          const driverData = await getDrivers(selectedSession.session_key);
           const driverMap = new Map<number, LiveDriver>(driverData.map(d => [d.driver_number, d]));
           setDrivers(driverMap);
 
-          const results = await getSessionResults(selectedSession);
-          const session = sessions.find(s => s.session_key === selectedSession);
-          setLeaderboard(processSessionResultsData(driverMap, results, session?.session_name || ''));
+          const results = await getSessionResults(selectedSession.session_key);
+          setLeaderboard(processSessionResultsData(driverMap, results, selectedSession?.session_name || ''));
         } catch (err) {
           setError('Could not load session results.');
           console.error(err);
@@ -146,7 +140,7 @@ const ResultsScreen = (): React.JSX.Element => {
       };
       fetchResults();
     }
-  }, [selectedSession, processSessionResultsData, sessions]);
+  }, [selectedSession, processSessionResultsData]);
 
   const renderLeaderboardItem = useCallback(({ item }: { item: LeaderboardEntry }) => {
     return (
@@ -169,74 +163,89 @@ const ResultsScreen = (): React.JSX.Element => {
   }, []);
 
   const ListHeader = () => {
-    const handleMeetingPress = (meetingKey: number) => {
-      setSelectedMeeting(meetingKey);
-      const layout = meetingLayouts.current.get(meetingKey);
-      if (layout && meetingScrollViewRef.current) {
-        meetingScrollViewRef.current.scrollTo({ x: layout.x - (screenWidth / 2) + (layout.width / 2), animated: true });
-      }
-    };
-
-    const handleSessionPress = (sessionKey: number) => {
-      setSelectedSession(sessionKey);
-      const layout = sessionLayouts.current.get(sessionKey);
-      if (layout && sessionScrollViewRef.current) {
-        sessionScrollViewRef.current.scrollTo({ x: layout.x - (screenWidth / 2) + (layout.width / 2), animated: true });
-      }
-    };
-
     return (
-      <>
-        <ScrollView
-          ref={meetingScrollViewRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={globalStyles.chipContainer}
+      <View style={{ padding: 16 }}>
+        <Button
+          onPress={() => setMeetingModalVisible(true)}
+          mode="outlined"
+          style={{ marginBottom: 10, borderColor: colors.primary }}
+          textColor={colors.text}
         >
-          {meetings.map(meeting => (
-            <Pressable
-              key={meeting.meeting_key}
-              onLayout={(event) => {
-                const layout = event.nativeEvent.layout;
-                meetingLayouts.current.set(meeting.meeting_key, layout);
-              }}
-              onPress={() => handleMeetingPress(meeting.meeting_key)}
-              style={[globalStyles.chip, selectedMeeting === meeting.meeting_key && globalStyles.chipSelected]}
-            >
-              <Text style={[globalStyles.chipText, selectedMeeting === meeting.meeting_key && globalStyles.chipTextSelected]}>
-                {meeting.circuit_short_name}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-        <ScrollView
-          ref={sessionScrollViewRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={globalStyles.chipContainer}
+          {selectedMeeting ? selectedMeeting.meeting_name : "Select a Meeting"}
+        </Button>
+        <Button
+          onPress={() => setSessionModalVisible(true)}
+          mode="outlined"
+          textColor={colors.text}
+          style={{ borderColor: colors.primary }}
         >
-          {sessions.map(session => (
-            <Pressable
-              key={session.session_key}
-              onLayout={(event) => {
-                const layout = event.nativeEvent.layout;
-                sessionLayouts.current.set(session.session_key, layout);
-              }}
-              onPress={() => handleSessionPress(session.session_key)}
-              style={[globalStyles.chip, selectedSession === session.session_key && globalStyles.chipSelected]}
-            >
-              <Text style={[globalStyles.chipText, selectedSession === session.session_key && globalStyles.chipTextSelected]}>
-                {session.session_name}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </>
+          {selectedSession ? selectedSession.session_name : "Select a Session"}
+        </Button>
+      </View>
     );
   };
 
   return (
     <SafeAreaView style={globalStyles.container} edges={['top']}>
+      <Portal>
+        <Modal
+          visible={meetingModalVisible}
+          onDismiss={() => setMeetingModalVisible(false)}
+          transparent={true}
+          animationType="fade"
+          navigationBarTranslucent={true}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <ScrollView>
+                {meetings.map((meeting, index) => (
+                  <View key={meeting.meeting_key}>
+                    <Pressable
+                      onPress={() => {
+                        setSelectedMeeting(meeting);
+                        setMeetingModalVisible(false);
+                      }}
+                      style={styles.modalItem}
+                    >
+                      <Text style={styles.modalItemText}>{meeting.meeting_name}</Text>
+                    </Pressable>
+                    {index < meetings.length - 1 && <Divider style={{ backgroundColor: colors.border }} />}
+                  </View>
+                ))}
+              </ScrollView>
+              <Button onPress={() => setMeetingModalVisible(false)} textColor={colors.primary} style={{marginTop: 10}}>Close</Button>
+            </View>
+          </View>
+        </Modal>
+        <Modal
+          visible={sessionModalVisible}
+          onDismiss={() => setSessionModalVisible(false)}
+          transparent={true}
+          animationType="fade"
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <ScrollView>
+                {sessions.map((session, index) => (
+                  <View key={session.session_key}>
+                    <Pressable
+                      onPress={() => {
+                        setSelectedSession(session);
+                        setSessionModalVisible(false);
+                      }}
+                      style={styles.modalItem}
+                    >
+                      <Text style={styles.modalItemText}>{session.session_name}</Text>
+                    </Pressable>
+                    {index < sessions.length - 1 && <Divider style={{ backgroundColor: colors.border }} />}
+                  </View>
+                ))}
+              </ScrollView>
+              <Button onPress={() => setSessionModalVisible(false)} textColor={colors.primary} style={{marginTop: 10}}>Close</Button>
+            </View>
+          </View>
+        </Modal>
+      </Portal>
       <FlatList
         data={leaderboard}
         renderItem={renderLeaderboardItem}
@@ -255,5 +264,28 @@ const ResultsScreen = (): React.JSX.Element => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    padding: 20,
+    borderRadius: 12,
+    width: '80%',
+    maxHeight: '60%',
+  },
+  modalItem: {
+    paddingVertical: 15,
+  },
+  modalItemText: {
+    color: colors.text,
+    fontSize: 16,
+  },
+});
 
 export default ResultsScreen;
