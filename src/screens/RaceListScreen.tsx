@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, Image } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, FlatList, Image, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
@@ -36,68 +36,76 @@ const RaceListScreen = (): React.JSX.Element => {
   const [upcomingEvents, setUpcomingEvents] = useState<ProcessedEvent[]>([]);
   const [countdown, setCountdown] = useState<Countdown | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchAndProcessEvents = async () => {
-      try {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        let raceEvents = await getScheduleForYear(currentYear);
-        let allEvents: ProcessedEvent[] = [];
-        raceEvents.forEach((race) => {
-          for (const sessionKey in race.sessions) {
-            const key = sessionKey as keyof Sessions;
-            const sessionDate = race.sessions[key];
-            if (sessionDate) {
-              allEvents.push({
-                key: `${race.round}-${key}`,
-                eventName: getSessionName(key),
-                raceName: race.name,
-                dateTime: new Date(sessionDate),
-              });
-            }
-          }
-        });
-        let futureEvents = allEvents
-          .filter((e) => e.dateTime > now)
-          .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
-        if (futureEvents.length === 0) {
-          const nextYearRaces = await getScheduleForYear(currentYear + 1);
-          if (nextYearRaces.length > 0) {
-            let nextYearEvents: ProcessedEvent[] = [];
-            nextYearRaces.forEach((race) => {
-              for (const sessionKey in race.sessions) {
-                const key = sessionKey as keyof Sessions;
-                const sessionDate = race.sessions[key];
-                if (sessionDate) {
-                  nextYearEvents.push({
-                    key: `${race.round}-${key}`,
-                    eventName: getSessionName(key),
-                    raceName: race.name,
-                    dateTime: new Date(sessionDate),
-                  });
-                }
-              }
+  const fetchAndProcessEvents = useCallback(async () => {
+    try {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      let raceEvents = await getScheduleForYear(currentYear);
+      let allEvents: ProcessedEvent[] = [];
+      raceEvents.forEach((race) => {
+        for (const sessionKey in race.sessions) {
+          const key = sessionKey as keyof Sessions;
+          const sessionDate = race.sessions[key];
+          if (sessionDate) {
+            allEvents.push({
+              key: `${race.round}-${key}`,
+              eventName: getSessionName(key),
+              raceName: race.name,
+              dateTime: new Date(sessionDate),
             });
-            futureEvents = nextYearEvents.sort(
-              (a, b) => a.dateTime.getTime() - b.dateTime.getTime()
-            );
           }
         }
-        if (futureEvents.length > 0) {
-          setNextEvent(futureEvents[0]);
-          setUpcomingEvents(futureEvents.slice(1));
+      });
+      let futureEvents = allEvents
+        .filter((e) => e.dateTime > now)
+        .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+      if (futureEvents.length === 0) {
+        const nextYearRaces = await getScheduleForYear(currentYear + 1);
+        if (nextYearRaces.length > 0) {
+          let nextYearEvents: ProcessedEvent[] = [];
+          nextYearRaces.forEach((race) => {
+            for (const sessionKey in race.sessions) {
+              const key = sessionKey as keyof Sessions;
+              const sessionDate = race.sessions[key];
+              if (sessionDate) {
+                nextYearEvents.push({
+                  key: `${race.round}-${key}`,
+                  eventName: getSessionName(key),
+                  raceName: race.name,
+                  dateTime: new Date(sessionDate),
+                });
+              }
+            }
+          });
+          futureEvents = nextYearEvents.sort(
+            (a, b) => a.dateTime.getTime() - b.dateTime.getTime()
+          );
         }
-      } catch (err) {
-        setError('Failed to fetch F1 schedule.');
-        console.error(err);
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchAndProcessEvents();
+      if (futureEvents.length > 0) {
+        setNextEvent(futureEvents[0]);
+        setUpcomingEvents(futureEvents.slice(1));
+      }
+    } catch (err) {
+      setError('Failed to fetch F1 schedule.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchAndProcessEvents();
+  }, [fetchAndProcessEvents]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAndProcessEvents();
+  }, [fetchAndProcessEvents]);
 
   useEffect(() => {
     if (!nextEvent) return;
@@ -158,61 +166,72 @@ const RaceListScreen = (): React.JSX.Element => {
 
   return (
     <SafeAreaView style={globalStyles.container} edges={['top']}>
-      <View style={globalStyles.logoContainer}>
-        <Image
-          source={require('../assets/f1.png')}
-          style={globalStyles.logo}
-          resizeMode="contain"
-        />
-      </View>
-      <Card style={globalStyles.nextRaceCard} elevation={4}>
-        <Card.Content>
-          <Text variant="labelLarge" style={globalStyles.nextRaceSubheading}>
-            NEXT EVENT: {nextEvent.eventName}
-          </Text>
-          <Text variant="headlineMedium" style={globalStyles.nextRaceTitle}>
-            {nextEvent.raceName}
-          </Text>
-          <Text style={globalStyles.dateText}>
-            {nextEvent.dateTime.toLocaleString()}
-          </Text>
-          {countdown && (
-            <View style={globalStyles.countdownContainer}>
-              <View style={globalStyles.timeBox}>
-                <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
-                  {countdown.days}
-                </Text>
-                <Text style={globalStyles.countdownLabel}>Days</Text>
-              </View>
-              <View style={globalStyles.timeBox}>
-                <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
-                  {countdown.hours}
-                </Text>
-                <Text style={globalStyles.countdownLabel}>Hours</Text>
-              </View>
-              <View style={globalStyles.timeBox}>
-                <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
-                  {countdown.minutes}
-                </Text>
-                <Text style={globalStyles.countdownLabel}>Mins</Text>
-              </View>
-              <View style={globalStyles.timeBox}>
-                <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
-                  {countdown.seconds}
-                </Text>
-                <Text style={globalStyles.countdownLabel}>Secs</Text>
-              </View>
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-      <Text variant="titleLarge" style={globalStyles.listHeader}>
-        Upcoming Events
-      </Text>
       <FlatList
         data={upcomingEvents}
         keyExtractor={(item) => item.key}
         renderItem={renderUpcomingEvent}
+        ListHeaderComponent={
+          <>
+            <View style={globalStyles.logoContainer}>
+              <Image
+                source={require('../assets/f1.png')}
+                style={globalStyles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <Card style={globalStyles.nextRaceCard} elevation={4}>
+              <Card.Content>
+                <Text variant="labelLarge" style={globalStyles.nextRaceSubheading}>
+                  NEXT EVENT: {nextEvent.eventName}
+                </Text>
+                <Text variant="headlineMedium" style={globalStyles.nextRaceTitle}>
+                  {nextEvent.raceName}
+                </Text>
+                <Text style={globalStyles.dateText}>
+                  {nextEvent.dateTime.toLocaleString()}
+                </Text>
+                {countdown && (
+                  <View style={globalStyles.countdownContainer}>
+                    <View style={globalStyles.timeBox}>
+                      <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
+                        {countdown.days}
+                      </Text>
+                      <Text style={globalStyles.countdownLabel}>Days</Text>
+                    </View>
+                    <View style={globalStyles.timeBox}>
+                      <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
+                        {countdown.hours}
+                      </Text>
+                      <Text style={globalStyles.countdownLabel}>Hours</Text>
+                    </View>
+                    <View style={globalStyles.timeBox}>
+                      <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
+                        {countdown.minutes}
+                      </Text>
+                      <Text style={globalStyles.countdownLabel}>Mins</Text>
+                    </View>
+                    <View style={globalStyles.timeBox}>
+                      <Text variant="headlineLarge" style={globalStyles.countdownNumber}>
+                        {countdown.seconds}
+                      </Text>
+                      <Text style={globalStyles.countdownLabel}>Secs</Text>
+                    </View>
+                  </View>
+                )}
+              </Card.Content>
+            </Card>
+            <Text variant="titleLarge" style={globalStyles.listHeader}>
+              Upcoming Events
+            </Text>
+          </>
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       />
     </SafeAreaView>
   );

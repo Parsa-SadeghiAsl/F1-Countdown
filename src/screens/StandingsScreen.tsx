@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, Image, ListRenderItem, Pressable, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, FlatList, Image, ListRenderItem, Pressable, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
@@ -16,57 +16,64 @@ const StandingsScreen = (): React.JSX.Element => {
   const [liveDrivers, setLiveDrivers] = useState<Map<number, LiveDriver>>(new Map());
   const [constructorColors, setConstructorColors] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState('drivers');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const year = new Date().getFullYear().toString();
-        const [driverData, constructorData, liveDriversData] = await Promise.all([
-          getDriverStandings(year),
-          getConstructorStandings(year),
-          getLatestDrivers(),
-        ]);
+  const fetchData = useCallback(async () => {
+    try {
+      const year = new Date().getFullYear().toString();
+      const [driverData, constructorData, liveDriversData] = await Promise.all([
+        getDriverStandings(year),
+        getConstructorStandings(year),
+        getLatestDrivers(),
+      ]);
 
-        setDrivers(driverData || []);
-        setConstructors(constructorData || []);
+      setDrivers(driverData || []);
+      setConstructors(constructorData || []);
 
-        const driversMap = new Map<number, LiveDriver>();
-        liveDriversData.forEach(driver => {
-          driversMap.set(driver.driver_number, driver);
-        });
-        setLiveDrivers(driversMap);
+      const driversMap = new Map<number, LiveDriver>();
+      liveDriversData.forEach(driver => {
+        driversMap.set(driver.driver_number, driver);
+      });
+      setLiveDrivers(driversMap);
 
-        const colorMap = new Map<string, string>();
-        liveDriversData.forEach(driver => {
-          if (driver.team_name && driver.team_colour && !colorMap.has(driver.team_name)) {
-            colorMap.set(driver.team_name == 'Kick Sauber' ? 'sauber': driver.team_name == 'Racing Bulls' ? 'rb f1 team': driver.team_name , `#${driver.team_colour}`);
+      const colorMap = new Map<string, string>();
+      liveDriversData.forEach(driver => {
+        if (driver.team_name && driver.team_colour && !colorMap.has(driver.team_name)) {
+          colorMap.set(driver.team_name == 'Kick Sauber' ? 'sauber': driver.team_name == 'Racing Bulls' ? 'rb f1 team': driver.team_name , `#${driver.team_colour}`);
+        }
+      });
+
+      const finalConstructorColors = new Map<string, string>();
+      if (constructorData) {
+        constructorData.forEach(constructor => {
+          const constructorName = constructor.Constructor.name.toLowerCase();
+          for (const [teamName, color] of colorMap.entries()) {
+            if (teamName.toLowerCase().includes(constructorName) || constructorName.includes(teamName.toLowerCase())) {
+              finalConstructorColors.set(constructor.Constructor.name, color);
+              break;
+            }
           }
         });
-
-
-        const finalConstructorColors = new Map<string, string>();
-        if (constructorData) {
-          constructorData.forEach(constructor => {
-            const constructorName = constructor.Constructor.name.toLowerCase();
-            for (const [teamName, color] of colorMap.entries()) {
-              if (teamName.toLowerCase().includes(constructorName) || constructorName.includes(teamName.toLowerCase())) {
-                finalConstructorColors.set(constructor.Constructor.name, color);
-                break;
-              }
-            }
-          });
-        }
-        setConstructorColors(finalConstructorColors);
-
-      } catch (error) {
-        console.error("Failed to fetch standings data:", error);
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchData();
+      setConstructorColors(finalConstructorColors);
+
+    } catch (error) {
+      console.error("Failed to fetch standings data:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData();
+  }, [fetchData]);
 
   const renderDriver: ListRenderItem<DriverStanding> = ({ item }) => {
     const liveDriver = liveDrivers.get(Number(item.Driver.permanentNumber) == 33 ? 1 :Number(item.Driver.permanentNumber));
@@ -136,6 +143,13 @@ const StandingsScreen = (): React.JSX.Element => {
         data={view === 'drivers' ? drivers : constructors}
         renderItem={view === 'drivers' ? renderDriver as any : renderConstructor as any}
         keyExtractor={(item: any) => item.position}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
         ListEmptyComponent={() => (
           <View style={globalStyles.center}>
             {loading ? (

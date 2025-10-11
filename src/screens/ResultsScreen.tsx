@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, FlatList, Image, Modal, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, FlatList, Image, Modal, ScrollView, Pressable, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Card, Text, Button, Divider, Portal } from 'react-native-paper';
 import { getMeetings, getSessions, getDrivers, getSessionResults } from '../services/API';
@@ -14,48 +14,11 @@ const ResultsScreen = (): React.JSX.Element => {
   const [drivers, setDrivers] = useState<Map<number, LiveDriver>>(new Map());
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [meetingModalVisible, setMeetingModalVisible] = useState(false);
   const [sessionModalVisible, setSessionModalVisible] = useState(false);
-
-  useEffect(() => {
-    const initialize = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const year = new Date().getFullYear();
-        const meetingsData = await getMeetings(year);
-        setMeetings(meetingsData);
-        if (meetingsData.length > 0) {
-          const lastMeeting = meetingsData[meetingsData.length - 1];
-          setSelectedMeeting(lastMeeting);
-        }
-      } catch (err) {
-        setError('Could not load season data.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    initialize();
-  }, []);
-
-  useEffect(() => {
-    if (selectedMeeting) {
-      const fetchSessions = async () => {
-        setLoading(true);
-        const sessionsData = await getSessions(selectedMeeting.meeting_key);
-        setSessions(sessionsData);
-        if (sessionsData.length > 0) {
-          const lastSession = sessionsData.find(s => s.session_name === 'Race') || sessionsData[sessionsData.length - 1];
-          setSelectedSession(lastSession);
-        }
-        setLoading(false);
-      };
-      fetchSessions();
-    }
-  }, [selectedMeeting]);
 
   const formatTime = (timeInSeconds: number | null | undefined): string => {
     if (timeInSeconds == null || isNaN(timeInSeconds)) return '';
@@ -68,7 +31,6 @@ const ResultsScreen = (): React.JSX.Element => {
     return date.toISOString().substring(11, 22); // HH:MM:SS
     }
   };
-
 
   const processSessionResultsData = useCallback((
     driverMap: Map<number, LiveDriver>,
@@ -122,27 +84,77 @@ const ResultsScreen = (): React.JSX.Element => {
     }).filter(Boolean) as LeaderboardEntry[];
   }, []);
 
-  useEffect(() => {
-    if (selectedSession) {
-      const fetchResults = async () => {
-        setLoading(true);
-        try {
-          const driverData = await getDrivers(selectedSession.session_key);
-          const driverMap = new Map<number, LiveDriver>(driverData.map(d => [d.driver_number, d]));
-          setDrivers(driverMap);
+  const fetchMeetings = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const year = new Date().getFullYear();
+      const meetingsData = await getMeetings(year);
+      setMeetings(meetingsData);
+      if (meetingsData.length > 0) {
+        const lastMeeting = meetingsData[meetingsData.length - 1];
+        setSelectedMeeting(lastMeeting);
+      }
+    } catch (err) {
+      setError('Could not load season data.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-          const results = await getSessionResults(selectedSession.session_key);
-          setLeaderboard(processSessionResultsData(driverMap, results, selectedSession?.session_name || ''));
-        } catch (err) {
-          setError('Could not load session results.');
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchResults();
+  const fetchResults = useCallback(async () => {
+    if (!selectedSession) return;
+    setLoading(true);
+    try {
+      const driverData = await getDrivers(selectedSession.session_key);
+      const driverMap = new Map<number, LiveDriver>(driverData.map(d => [d.driver_number, d]));
+      setDrivers(driverMap);
+
+      const results = await getSessionResults(selectedSession.session_key);
+      setLeaderboard(processSessionResultsData(driverMap, results, selectedSession?.session_name || ''));
+    } catch (err) {
+      setError('Could not load session results.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   }, [selectedSession, processSessionResultsData]);
+
+  useEffect(() => {
+    fetchMeetings();
+  }, [fetchMeetings]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    if (selectedSession) {
+      fetchResults();
+    } else {
+      fetchMeetings();
+    }
+  }, [selectedSession, fetchMeetings, fetchResults]);
+
+  useEffect(() => {
+    if (selectedMeeting) {
+      const fetchSessions = async () => {
+        setLoading(true);
+        const sessionsData = await getSessions(selectedMeeting.meeting_key);
+        setSessions(sessionsData);
+        if (sessionsData.length > 0) {
+          const lastSession = sessionsData.find(s => s.session_name === 'Race') || sessionsData[sessionsData.length - 1];
+          setSelectedSession(lastSession);
+        }
+        setLoading(false);
+      };
+      fetchSessions();
+    }
+  }, [selectedMeeting]);
+
+  useEffect(() => {
+    fetchResults();
+  }, [fetchResults]);
 
   const renderLeaderboardItem = useCallback(({ item }: { item: LeaderboardEntry }) => {
     return (
@@ -187,7 +199,7 @@ const ResultsScreen = (): React.JSX.Element => {
     );
   };
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={globalStyles.center}>
         <ActivityIndicator color={colors.primary} size="large" />
@@ -262,6 +274,13 @@ const ResultsScreen = (): React.JSX.Element => {
         renderItem={renderLeaderboardItem}
         keyExtractor={(item) => item.driver_number.toString()}
         ListHeaderComponent={<ListHeader />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
         ListEmptyComponent={() => (
           <View style={globalStyles.center}>
             {loading ? (
@@ -278,11 +297,7 @@ const ResultsScreen = (): React.JSX.Element => {
 
 const styles = StyleSheet.create({
   modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
