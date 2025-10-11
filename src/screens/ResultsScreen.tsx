@@ -216,6 +216,7 @@ const ResultsScreen = (): React.JSX.Element => {
           transparent={true}
           animationType="fade"
           navigationBarTranslucent={true}
+          statusBarTranslucent={true}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -245,6 +246,7 @@ const ResultsScreen = (): React.JSX.Element => {
           transparent={true}
           animationType="fade"
           navigationBarTranslucent={true}
+          statusBarTranslucent={true}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
