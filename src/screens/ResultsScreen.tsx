@@ -44,12 +44,14 @@ const ResultsScreen = (): React.JSX.Element => {
   useEffect(() => {
     if (selectedMeeting) {
       const fetchSessions = async () => {
+        setLoading(true);
         const sessionsData = await getSessions(selectedMeeting.meeting_key);
         setSessions(sessionsData);
         if (sessionsData.length > 0) {
           const lastSession = sessionsData.find(s => s.session_name === 'Race') || sessionsData[sessionsData.length - 1];
           setSelectedSession(lastSession);
         }
+        setLoading(false);
       };
       fetchSessions();
     }
@@ -185,6 +187,14 @@ const ResultsScreen = (): React.JSX.Element => {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={globalStyles.center}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    )
+  }
+
   return (
     <SafeAreaView style={globalStyles.container} edges={['top']}>
       <Portal>
@@ -222,6 +232,7 @@ const ResultsScreen = (): React.JSX.Element => {
           onDismiss={() => setSessionModalVisible(false)}
           transparent={true}
           animationType="fade"
+          navigationBarTranslucent={true}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -267,7 +278,11 @@ const ResultsScreen = (): React.JSX.Element => {
 
 const styles = StyleSheet.create({
   modalOverlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
