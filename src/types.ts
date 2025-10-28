@@ -137,7 +137,7 @@ export interface LiveSessionResult {
   points?: number;
   time?: number;
   best_lap_time?: number;
-  duration: any;
+  duration: string;
   dnf: boolean;
   dsq: boolean;
   dns: boolean;
